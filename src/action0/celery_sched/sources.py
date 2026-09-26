@@ -19,7 +19,7 @@ from typing import TypeAlias
 from action0.celery_sched.errors import located
 from action0.celery_sched.formats import FormatLike
 from action0.celery_sched.formats import detect_format
-from action0.celery_sched.formats import parse_text
+from action0.celery_sched.formats import parser_for
 
 #: what the load functions read from: a file path, an open stream, or parsed data
 Source: TypeAlias = str | os.PathLike[str] | IO[str] | IO[bytes] | Mapping[str, Any]
@@ -38,16 +38,19 @@ def read_source(source: Source, format: FormatLike | None = None) -> tuple[str |
     :returns: the source's name (the path, the stream's name, or ``None``) and
         its document
     :raises ValueError: if the format of a file or stream can't be told
+    :raises ImportError: for a YAML source, if PyYAML (the ``yaml`` extra) is
+        not installed
     :raises DefinitionError: if the text is malformed
     """
     if isinstance(source, Mapping):
         return None, source
     name = os.fspath(source) if isinstance(source, str | os.PathLike) else _stream_name(source)
-    # decided before reading, so a file of unknown format fails without any I/O
-    parsed_format = detect_format(name, format)
+    # decided before reading, so a file of unknown format (or one whose parser
+    # isn't installed) fails without any I/O
+    parse = parser_for(detect_format(name, format))
     text = _read_text(source)
     with located(source=name):
-        return name, parse_text(text, parsed_format)
+        return name, parse(text)
 
 
 def _stream_name(stream: IO[str] | IO[bytes]) -> str | None:

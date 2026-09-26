@@ -1,15 +1,24 @@
 # action0-celery-sched
 
-Celery beat schedules defined in YAML or TOML files: which task runs when, with which
-arguments, kept out of the code and validated when the app starts.
+Celery beat schedules defined in YAML or TOML files: which task runs when, with
+which arguments, kept out of the code and validated when the app starts.
 
 ```shell
-uv add action0-celery-sched    # not on PyPI yet — install from GitHub for now
+# not on PyPI yet — install from GitHub for now
+uv add action0-celery-sched            # TOML schedules
+uv add "action0-celery-sched[yaml]"    # YAML schedules too (PyYAML)
 ```
 
-Write the schedule down:
+Write the schedule down, in either format:
+
+::::{tab-set}
+:sync-group: format
+
+:::{tab-item} YAML
+:sync: yaml
 
 ```yaml
+# beat.yaml
 "Poll feed":
   task: myapp.feeds.tasks.poll
   schedule:
@@ -27,9 +36,22 @@ Write the schedule down:
     queue: reports
 ```
 
-Or, the very same entries, in TOML:
+And hand it to Celery:
+
+```python
+from celery import Celery
+from action0.celery_sched import load_beat_schedule
+
+app = Celery("myapp")
+app.conf.beat_schedule = load_beat_schedule("beat.yaml")
+```
+:::
+
+:::{tab-item} TOML
+:sync: toml
 
 ```toml
+# beat.toml
 ["Poll feed"]
 task = "myapp.feeds.tasks.poll"
 schedule = { every = "5m" }
@@ -49,21 +71,25 @@ from celery import Celery
 from action0.celery_sched import load_beat_schedule
 
 app = Celery("myapp")
-app.conf.beat_schedule = load_beat_schedule("beat.yaml")  # or "beat.toml"
+app.conf.beat_schedule = load_beat_schedule("beat.toml")
 ```
+:::
+::::
 
 **Highlights**:
 
-- Every kind of schedule Celery has: intervals (`every: 90s`, `1h30m`,
-  `{minutes: 5}`), crontabs (`"30 7 * * mon-fri"`, `@daily`, or a mapping of
-  fields) and solar events (`{event: sunset, lat: 48.21, lon: 16.37}`).
-- Strict validation at load time: unknown keys (a misspelled `shedule:`),
+- YAML and TOML on equal footing: the same entries, keys and values in both,
+  or an already parsed mapping, such as a table of a larger config file. TOML
+  needs nothing but the standard library's `tomllib`, YAML the `yaml` extra.
+- Every kind of schedule Celery has: intervals (`90s`, `1h30m`, a number of
+  seconds or `timedelta` arguments), crontabs (`"30 7 * * mon-fri"`, `@daily`,
+  or a mapping of fields) and solar events (sunset at a latitude and
+  longitude).
+- Strict validation at load time: unknown keys (a misspelled `shedule`),
   impossible crontab fields and duplicate entry names are errors that say
   which file, entry and key they are in — not a silently missing schedule.
-- YAML or TOML (via the standard library's `tomllib`) with the same entries,
-  or an already parsed mapping, such as a table of a larger TOML config.
 - `!ENV ${VAR:-fallback}` for values that differ per environment, and
-  `enabled: false` to keep an entry but not run it.
+  `enabled` set to false to keep an entry but not run it.
 - Several files merged in order, formats mixed, optionally letting a later
   one override entries of an earlier one.
 - {py:func}`~action0.celery_sched.tasks.check_tasks` to verify, at beat

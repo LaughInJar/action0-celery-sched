@@ -1,19 +1,22 @@
 """
-Parse the ``schedule:`` block of an entry.
+Parse the ``schedule`` of an entry.
 
-The block is a mapping with exactly one key naming the kind of schedule:
+It is a mapping with exactly one key naming the kind of schedule: ``every``
+(an interval, see :py:mod:`~action0.celery_sched.durations`), ``crontab``
+(see :py:mod:`~action0.celery_sched.crontabs`) or ``solar`` (see
+:py:mod:`~action0.celery_sched.solar`). The same three entries in each format:
 
 .. code-block:: yaml
 
-    schedule:
-      every: 5m                     # an interval, see durations
-    schedule:
-      every: 1h
-      relative: true                # round to the interval, see below
-    schedule:
-      crontab: "0 3 * * *"          # see crontabs
-    schedule:
-      solar: {event: sunset, lat: 48.21, lon: 16.37}   # see solar
+    "Poll":   {task: myapp.tasks.poll, schedule: {every: 1h, relative: true}}
+    "Report": {task: myapp.tasks.report, schedule: {crontab: "0 3 * * *"}}
+    "Lights": {task: myapp.tasks.lights, schedule: {solar: {event: sunset, lat: 48.21, lon: 16.37}}}
+
+.. code-block:: toml
+
+    Poll = { task = "myapp.tasks.poll", schedule = { every = "1h", relative = true } }
+    Report = { task = "myapp.tasks.report", schedule = { crontab = "0 3 * * *" } }
+    Lights = { task = "myapp.tasks.lights", schedule = { solar = { event = "sunset", lat = 48.21, lon = 16.37 } } }
 
 ``relative`` is Celery's own flag for intervals: when true, the time of the
 next run is rounded to the resolution of the interval (a ``1h`` interval runs
@@ -41,7 +44,7 @@ KINDS = ("every", "crontab", "solar")
 
 def parse_schedule(value: object) -> BaseSchedule:
     """
-    Turn the ``schedule:`` block of an entry into a Celery schedule.
+    Turn the ``schedule`` of an entry into a Celery schedule.
 
     Intervals become a :py:class:`celery.schedules.schedule`, so every kind
     comes back as a :py:class:`~celery.schedules.BaseSchedule` that beat
@@ -52,7 +55,7 @@ def parse_schedule(value: object) -> BaseSchedule:
     >>> parse_schedule({"crontab": "0 3 * * *"})
     <crontab: 0 3 * * * (m/h/dM/MY/d)>
 
-    :param value: the parsed YAML value
+    :param value: the parsed value, from either format
     :returns: the schedule
     :raises DefinitionError: if the block is malformed
     """

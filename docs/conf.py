@@ -22,6 +22,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx_autodoc_typehints",
     "sphinx_copybutton",
+    "sphinx_design",
 ]
 
 # link references like :py:class:`celery.schedules.crontab` to the upstream docs

@@ -19,6 +19,8 @@ entries merge in:
       <<: *reports
       kw: {period: day}
       schedule: {crontab: "@daily"}
+
+TOML cannot refer to another table, so there templates are merely skipped.
 """
 
 from typing import NoReturn
@@ -57,6 +59,7 @@ def load_beat_schedule(
     :raises DefinitionError: if a file or an entry is malformed
     :raises DuplicateEntryError: if two entries share a name
     :raises ValueError: if the format of a file or stream can't be told
+    :raises ImportError: for YAML sources, if PyYAML (the ``yaml`` extra) is not installed
     """
     entries = load_entries(*sources, replace=replace, format=format)
     return {entry.name: entry.to_celery() for entry in entries if entry.enabled}
@@ -84,6 +87,7 @@ def load_entries(
     :raises DefinitionError: if a file or an entry is malformed
     :raises DuplicateEntryError: if two entries share a name
     :raises ValueError: if the format of a file or stream can't be told
+    :raises ImportError: for YAML sources, if PyYAML (the ``yaml`` extra) is not installed
     """
     merged: dict[str, Entry] = {}
     for source in sources:

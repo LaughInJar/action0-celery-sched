@@ -1,9 +1,14 @@
+import sys
 import unittest
+from unittest import mock
 
 from action0.celery_sched.errors import DefinitionError
 from action0.celery_sched.formats import Format
 from action0.celery_sched.formats import detect_format
 from action0.celery_sched.formats import parse_text
+from action0.celery_sched.formats import parser_for
+from action0.celery_sched.toml_loader import load_toml
+from action0.celery_sched.yaml_loader import load_yaml
 
 
 class DetectFormatTestCase(unittest.TestCase):
@@ -85,3 +90,40 @@ class ParseTextTestCase(unittest.TestCase):
         """
         with self.assertRaisesRegex(DefinitionError, "invalid TOML"):
             parse_text("Poll:\n  task: x\n", Format.TOML)
+
+
+class ParserForTestCase(unittest.TestCase):
+    """
+    tests for :py:func:`~action0.celery_sched.formats.parser_for`
+    """
+
+    def test_parsers(self) -> None:
+        """
+        Test that each format gets its own loader.
+        """
+        self.assertIs(parser_for(Format.TOML), load_toml)
+        self.assertIs(parser_for(Format.YAML), load_yaml)
+
+    def test_missing_pyyaml(self) -> None:
+        """
+        Test that YAML without PyYAML is explained with the extra to install.
+        """
+        # a None entry makes "import yaml" fail as if PyYAML weren't installed;
+        # dropping the cached loader forces it to be imported again
+        with mock.patch.dict(sys.modules, {"yaml": None}):
+            del sys.modules["action0.celery_sched.yaml_loader"]
+            with self.assertRaisesRegex(
+                ImportError, r"^YAML schedules need PyYAML: .*action0-celery-sched\[yaml\]"
+            ) as caught:
+                parser_for(Format.YAML)
+            self.assertIs(parser_for(Format.TOML), load_toml)
+        self.assertEqual(getattr(caught.exception.__cause__, "name", None), "yaml")
+
+    def test_other_import_errors_pass_through(self) -> None:
+        """
+        Test that an ImportError that isn't about PyYAML is not disguised as one.
+        """
+        with mock.patch.dict(sys.modules, {"action0.celery_sched.yaml_loader": None}):
+            with self.assertRaises(ImportError) as caught:
+                parser_for(Format.YAML)
+        self.assertNotIn("need PyYAML", str(caught.exception))
