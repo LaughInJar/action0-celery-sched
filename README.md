@@ -182,4 +182,4 @@ to rely on this package, that's a fair call — read the source, it's small.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](https://github.com/LaughInJar/action0-celery-sched/blob/main/LICENSE).

@@ -4,10 +4,12 @@ Celery beat schedules defined in YAML or TOML files: which task runs when, with
 which arguments, kept out of the code and validated when the app starts.
 
 ```shell
-# not on PyPI yet — install from GitHub for now
-uv add action0-celery-sched            # TOML schedules
-uv add "action0-celery-sched[yaml]"    # YAML schedules too (PyYAML)
+pip install action0-celery-sched            # TOML schedules
+pip install "action0-celery-sched[yaml]"    # YAML schedules too (PyYAML)
 ```
+
+(`uv add` works the same way; see [Installation](usage.md#installation) for
+all extras.)
 
 Write the schedule down, in either format:
 
