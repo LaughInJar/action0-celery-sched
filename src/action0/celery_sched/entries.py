@@ -1,7 +1,7 @@
 """
-One schedule entry: the YAML shape, its parsed form and Celery's.
+One schedule entry: its shape in a file, its parsed form and Celery's.
 
-In YAML an entry is a named mapping:
+An entry is a named mapping, with the same keys in YAML and TOML:
 
 .. code-block:: yaml
 
@@ -16,7 +16,17 @@ In YAML an entry is a named mapping:
         queue: reports
       enabled: true                       # false keeps the entry but skips it
 
-Any other key is an error, so a typo like ``shedule:`` fails at startup
+.. code-block:: toml
+
+    ["Nightly report"]                          # the entry's name, unique
+    task = "myapp.reports.tasks.nightly"        # the registered task name — required
+    schedule = { crontab = "0 3 * * *" }        # when to run it — required
+    params = ["daily"]                          # positional arguments
+    kw = { recipients = ["ops@example.com"] }   # keyword arguments
+    options = { queue = "reports" }             # passed on to apply_async()
+    enabled = true                              # false keeps the entry but skips it
+
+Any other key is an error, so a typo like ``shedule`` fails at startup
 instead of silently dropping the schedule.
 """
 
@@ -70,9 +80,9 @@ class Entry:
     task: str
     #: when the task runs
     schedule: BaseSchedule
-    #: positional arguments (``params:`` in YAML)
+    #: positional arguments (``params`` in the file)
     args: tuple[Any, ...] = ()
-    #: keyword arguments (``kw:`` in YAML)
+    #: keyword arguments (``kw`` in the file)
     kwargs: dict[str, Any] = field(default_factory=dict)
     #: ``apply_async()`` options such as ``queue``, ``priority`` or ``expires``
     options: dict[str, Any] = field(default_factory=dict)
@@ -104,7 +114,7 @@ def parse_entry(name: str, value: object, *, source: str | None = None) -> Entry
     through a YAML anchor never share it at runtime.
 
     :param name: the entry's name (its key in the file)
-    :param value: the parsed YAML value of the entry
+    :param value: the parsed value of the entry, from either format
     :param source: where the entry was read from, recorded on the entry
     :returns: the entry
     :raises DefinitionError: if the entry is malformed

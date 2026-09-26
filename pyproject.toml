@@ -11,7 +11,6 @@ license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
     "celery>=5.3",
-    "pyyaml>=6.0",
 ]
 keywords = ["celery", "celery-beat", "beat", "schedule", "periodic-tasks", "crontab", "yaml", "toml"]
 classifiers = [
@@ -31,7 +30,11 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-# only needed for `solar:` schedules — celery imports ephem when one is built
+# only needed for YAML schedules — TOML is read with the stdlib's tomllib
+yaml = [
+    "pyyaml>=6.0",
+]
+# only needed for solar schedules — celery imports ephem when one is built
 solar = [
     "ephem>=4.1",
 ]
@@ -50,6 +53,7 @@ dev = [
     "mypy>=2.3.0",
     "pyright>=1.1.411",
     "pytest>=9.0.3",
+    "pyyaml>=6.0",
     "ruff>=0.15.6",
     "ty>=0.0.23",
     "types-pyyaml>=6.0",
@@ -60,6 +64,7 @@ docs = [
     "sphinx>=9.0.4",
     "sphinx-autodoc-typehints>=3.6.1",
     "sphinx-copybutton>=0.5.2",
+    "sphinx-design>=0.7.0",
 ]
 
 [build-system]

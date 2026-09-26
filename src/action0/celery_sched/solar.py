@@ -1,9 +1,9 @@
 """
-Parse the value of a ``solar:`` schedule into a :py:class:`celery.schedules.solar`.
+Parse the value of a ``solar`` schedule into a :py:class:`celery.schedules.solar`.
 
-The value is a mapping of the event and the observer's position::
-
-    solar: {event: sunset, lat: 48.21, lon: 16.37}
+The value is a mapping of the event and the observer's position:
+``solar: {event: sunset, lat: 48.21, lon: 16.37}`` in YAML,
+``solar = { event = "sunset", lat = 48.21, lon = 16.37 }`` in TOML.
 
 Celery computes the event times with `ephem <https://pypi.org/project/ephem/>`_,
 which is only installed with the ``solar`` extra
@@ -46,12 +46,12 @@ _KEYS = ("event", "lat", "lon")
 
 def parse_solar(value: object) -> solar:
     """
-    Turn the value of a ``solar:`` key into a Celery solar schedule.
+    Turn the value of a ``solar`` key into a Celery solar schedule.
 
     >>> parse_solar({"event": "sunset", "lat": 48.21, "lon": 16.37})
     <solar: sunset at latitude 48.21, longitude: 16.37>
 
-    :param value: the parsed YAML value
+    :param value: the parsed value, from either format
     :returns: the solar schedule
     :raises DefinitionError: if the value is malformed or out of range
     :raises ImportError: if ephem (the ``solar`` extra) is not installed

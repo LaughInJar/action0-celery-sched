@@ -45,7 +45,7 @@ def expect_mapping(value: object) -> dict[str, Any]:
     >>> expect_mapping({"task": "myapp.tasks.poll"})
     {'task': 'myapp.tasks.poll'}
 
-    :param value: the parsed YAML value
+    :param value: the parsed value, from either format
     :returns: the value, typed as a dict
     :raises DefinitionError: if it isn't a mapping, or a key isn't a string
     """
@@ -88,7 +88,7 @@ def as_number(value: object) -> int | float:
     >>> as_number(1.5), as_number("30")
     (1.5, 30)
 
-    :param value: the parsed YAML value
+    :param value: the parsed value, from either format
     :returns: the number, an ``int`` where the input was integral text
     :raises DefinitionError: if the value is not a number (booleans aren't)
     """
@@ -116,7 +116,7 @@ def as_bool(value: object) -> bool:
     >>> as_bool(False), as_bool("yes"), as_bool("OFF")
     (False, True, False)
 
-    :param value: the parsed YAML value
+    :param value: the parsed value, from either format
     :returns: the boolean
     :raises DefinitionError: if the value is neither
     """

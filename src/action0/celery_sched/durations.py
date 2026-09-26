@@ -1,5 +1,5 @@
 """
-Parse the interval of an ``every:`` schedule.
+Parse the interval of an ``every`` schedule.
 
 Three spellings are accepted:
 
@@ -9,7 +9,7 @@ Three spellings are accepted:
   ``1h30m``, ``1.5h``, ``2d 12h`` — units ``w``, ``d``, ``h``, ``m``, ``s``
   and ``ms``, lowercase only (so ``m`` can never be misread as months);
 - a mapping of :py:class:`~datetime.timedelta` arguments:
-  ``{hours: 1, minutes: 30}``.
+  ``{hours: 1, minutes: 30}`` in YAML, ``{ hours = 1, minutes = 30 }`` in TOML.
 """
 
 import math
@@ -44,7 +44,7 @@ _DURATION_PATTERN = re.compile(rf"\s*(?:{_PART}\s*)+")
 
 def parse_duration(value: object) -> timedelta:
     """
-    Turn the value of an ``every:`` key into a positive :py:class:`~datetime.timedelta`.
+    Turn the value of an ``every`` key into a positive :py:class:`~datetime.timedelta`.
 
     >>> parse_duration(90)
     datetime.timedelta(seconds=90)
@@ -53,7 +53,7 @@ def parse_duration(value: object) -> timedelta:
     >>> parse_duration({"days": 1, "hours": 12})
     datetime.timedelta(days=1, seconds=43200)
 
-    :param value: the parsed YAML value
+    :param value: the parsed value, from either format
     :returns: the interval
     :raises DefinitionError: if the value is malformed, zero or negative
     """

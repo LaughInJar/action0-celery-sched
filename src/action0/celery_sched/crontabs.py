@@ -1,5 +1,5 @@
 """
-Parse the value of a ``crontab:`` schedule into a :py:class:`celery.schedules.crontab`.
+Parse the value of a ``crontab`` schedule into a :py:class:`celery.schedules.crontab`.
 
 Two spellings are accepted:
 
@@ -8,7 +8,8 @@ Two spellings are accepted:
   nicknames ``@hourly``, ``@daily``/``@midnight``, ``@weekly``, ``@monthly``
   and ``@yearly``/``@annually``;
 - a mapping of Celery's own keyword arguments, where omitted fields mean
-  ``*``: ``{minute: 30, hour: 7, day_of_week: mon-fri}``.
+  ``*``: ``{minute: 30, hour: 7, day_of_week: mon-fri}`` in YAML,
+  ``{ minute = 30, hour = 7, day_of_week = "mon-fri" }`` in TOML.
 
 Each field takes whatever Celery takes — ``*/15``, ``1-5``, ``mon,wed``, a
 plain number — and in the mapping form also a list of numbers. Every field
@@ -47,7 +48,7 @@ _Cronspec: TypeAlias = str | int | list[int]
 
 def parse_crontab(value: object) -> crontab:
     """
-    Turn the value of a ``crontab:`` key into a Celery crontab.
+    Turn the value of a ``crontab`` key into a Celery crontab.
 
     >>> parse_crontab("30 7 * * mon-fri")
     <crontab: 30 7 * * mon-fri (m/h/dM/MY/d)>
@@ -56,7 +57,7 @@ def parse_crontab(value: object) -> crontab:
     >>> parse_crontab("@daily")
     <crontab: 0 0 * * * (m/h/dM/MY/d)>
 
-    :param value: the parsed YAML value
+    :param value: the parsed value, from either format
     :returns: the crontab
     :raises DefinitionError: if the value is malformed or a field is invalid
     """

@@ -6,6 +6,11 @@ keys and values — so the format only decides which parser turns the text into
 data. By default a file's suffix decides: ``.yaml`` and ``.yml`` are YAML,
 ``.toml`` is TOML. A stream is judged by its ``name`` (which files opened with
 :py:func:`open` have); anything else needs an explicit ``format``.
+
+TOML is read with the standard library's :py:mod:`tomllib`. YAML needs
+PyYAML, which comes with the ``yaml`` extra
+(``pip install "action0-celery-sched[yaml]"``); it is imported only once a
+YAML source is actually read, so TOML-only installs never need it.
 """
 
 from collections.abc import Callable
@@ -16,7 +21,6 @@ from typing import Literal
 from typing import TypeAlias
 
 from action0.celery_sched.toml_loader import load_toml
-from action0.celery_sched.yaml_loader import load_yaml
 
 
 class Format(StrEnum):
@@ -39,11 +43,6 @@ SUFFIXES: dict[str, Format] = {
     ".yaml": Format.YAML,
     ".yml": Format.YAML,
     ".toml": Format.TOML,
-}
-
-_PARSERS: dict[Format, Callable[[str], Any]] = {
-    Format.YAML: load_yaml,
-    Format.TOML: load_toml,
 }
 
 
@@ -90,8 +89,36 @@ def parse_text(text: str, format: Format) -> Any:
     :param format: its format
     :returns: the parsed document, as plain Python data
     :raises DefinitionError: if the text is malformed
+    :raises ImportError: for YAML, if PyYAML (the ``yaml`` extra) is not installed
     """
-    return _PARSERS[format](text)
+    return parser_for(format)(text)
+
+
+def parser_for(format: Format) -> Callable[[str], Any]:
+    """
+    Get the parser of a format, importing the YAML one on first use.
+
+    The loaders call this *before* reading a source, so a missing PyYAML is
+    reported without any I/O, like a format that can't be told.
+
+    >>> parser_for(Format.TOML).__name__
+    'load_toml'
+
+    :param format: the format
+    :returns: a function turning text in that format into plain Python data
+    :raises ImportError: for YAML, if PyYAML (the ``yaml`` extra) is not installed
+    """
+    if format is Format.TOML:
+        return load_toml
+    try:
+        from action0.celery_sched.yaml_loader import load_yaml
+    except ImportError as error:
+        if error.name != "yaml":  # a real bug, not the missing extra
+            raise
+        raise ImportError(
+            "YAML schedules need PyYAML: pip install 'action0-celery-sched[yaml]'"
+        ) from error
+    return load_yaml
 
 
 def _choices() -> str:

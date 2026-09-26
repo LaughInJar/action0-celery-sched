@@ -18,15 +18,22 @@ API may still move.
 ## Installation
 
 ```shell
-pip install action0-celery-sched           # or: uv add action0-celery-sched
-pip install "action0-celery-sched[solar]"  # with solar schedules (ephem)
+pip install action0-celery-sched                # TOML schedules
+pip install "action0-celery-sched[yaml]"        # YAML schedules too (PyYAML)
+pip install "action0-celery-sched[solar]"       # solar schedules (ephem)
+pip install "action0-celery-sched[yaml,solar]"  # all of it
 ```
+
+TOML needs nothing beyond the standard library's `tomllib`; YAML needs PyYAML,
+which the `yaml` extra brings along. (`uv add` works the same way.)
 
 ## Usage
 
-Write the schedule down, in YAML:
+Write the schedule down, in YAML or in TOML — the entries are the same in
+both:
 
 ```yaml
+# beat.yaml
 "Poll feed":
   task: myapp.feeds.tasks.poll
   schedule:
@@ -49,19 +56,18 @@ Write the schedule down, in YAML:
     solar: {event: sunset, lat: 48.21, lon: 16.37}
 ```
 
-Or in TOML, with the very same entries:
-
 ```toml
+# beat.toml
 ["Poll feed"]
 task = "myapp.feeds.tasks.poll"
-schedule = { every = "5m" }
+schedule = { every = "5m" }                 # or 300, "90s", "1h30m", { minutes = 5 }
 
 ["Nightly report"]
 task = "myapp.reports.tasks.nightly"
-kw = { recipients = ["ops@example.com"] }
-params = ["daily"]
-schedule = { crontab = "0 3 * * *" }
-options = { queue = "reports" }
+kw = { recipients = ["ops@example.com"] }   # keyword arguments
+params = ["daily"]                          # positional arguments
+schedule = { crontab = "0 3 * * *" }        # or { minute = 0, hour = 3 }, or "@daily"
+options = { queue = "reports" }             # passed on to apply_async()
 
 ["Sunset lights"]
 task = "myapp.home.tasks.lights_on"
@@ -75,12 +81,14 @@ from celery import Celery
 from action0.celery_sched import load_beat_schedule
 
 app = Celery("myapp")
-app.conf.beat_schedule = load_beat_schedule("beat.yaml")  # or "beat.toml"
+app.conf.beat_schedule = load_beat_schedule("beat.yaml")
+# or
+app.conf.beat_schedule = load_beat_schedule("beat.toml")
 ```
 
-The suffix decides the format (`format="toml"` for anything else). A mapping
-works too, e.g. the `[beat]` table of a larger TOML config:
-`load_beat_schedule(settings["beat"])`.
+The suffix decides the format (`format="yaml"` or `format="toml"` for anything
+else). A mapping works too, e.g. the `beat` part of a larger YAML or TOML
+config: `load_beat_schedule(settings["beat"])`.
 
 The result is plain Celery, a `beat_schedule` dict of `schedule`, `crontab`
 and `solar` objects:
@@ -95,15 +103,18 @@ and `solar` objects:
 ```
 
 Everything is validated while loading. An unknown key such as a misspelled
-`shedule:`, an impossible crontab field, or an entry name used twice is an
-error naming the file, the entry and the key:
+`shedule`, an impossible crontab field, or an entry name used twice is an
+error naming the file, the entry and the key — the same message for both
+formats, here for the crontab `"0 25 * * *"`:
 
 ```text
 beat.yaml: entry 'Nightly report': schedule.crontab.hour: invalid value '25': Invalid end range: 25 > 23.
+beat.toml: entry 'Nightly report': schedule.crontab.hour: invalid value '25': Invalid end range: 25 > 23.
 ```
 
 Values that differ per environment can come from environment variables, and
-entries can be switched off without deleting them:
+entries can be switched off without deleting them. In YAML `!ENV` is a tag;
+TOML has no tags, so there it is a prefix of the string:
 
 ```yaml
 "Nightly report":
@@ -113,8 +124,12 @@ entries can be switched off without deleting them:
   enabled: !ENV ${REPORTS_ENABLED:-true}
 ```
 
-TOML has no tags, so there `!ENV` is a prefix of the string:
-`crontab = "!ENV ${REPORT_CRON:-0 3 * * *}"`.
+```toml
+["Nightly report"]
+task = "myapp.reports.tasks.nightly"
+schedule = { crontab = "!ENV ${REPORT_CRON:-0 3 * * *}" }
+enabled = "!ENV ${REPORTS_ENABLED:-true}"
+```
 
 Several files merge in order, whatever their format. With `replace=True` a
 later file may override or disable entries of an earlier one:
@@ -125,7 +140,7 @@ app.conf.beat_schedule = load_beat_schedule(
 )
 ```
 
-A misspelled `task:` name would only surface when the task is first due. Catch
+A misspelled `task` name would only surface when the task is first due. Catch
 it when beat starts instead:
 
 ```python
@@ -139,9 +154,9 @@ def check_schedule(sender, **kwargs):
 ```
 
 See the [usage guide](https://laughinjar.github.io/action0-celery-sched/usage.html)
-for the full file format: every interval and crontab spelling, `relative`
-intervals, how YAML and TOML differ, templates and anchors, and the error
-types.
+for the full file format, every example in both YAML and TOML: every interval
+and crontab spelling, `relative` intervals, how the two formats differ,
+templates and anchors, and the error types.
 
 The `action0` namespace is simply the one the author likes to use for
 personal projects.
